@@ -1,0 +1,10 @@
+[package]
+name = "hs_cli"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hs_gba = { path = "../hs_gba/" }
+hs_dbg = { path = "../hs_dbg/" }
+reedline = "0.14.0"
+crossbeam = "0.8.2"

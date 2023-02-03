@@ -1,0 +1,9 @@
+[package]
+name = "hs_gba"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+meson = "1.0.0"
+cargo-emit = "0.1"
+bindgen = "0.63.0"
