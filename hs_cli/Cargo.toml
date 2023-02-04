@@ -6,5 +6,6 @@ edition = "2021"
 [dependencies]
 hs_gba = { path = "../hs_gba/" }
 hs_dbg = { path = "../hs_dbg/" }
-reedline = "0.14.0"
 crossbeam = "0.8.2"
+ctrlc = "3.2.4"
+lazy_static = "1.4.0"

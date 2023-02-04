@@ -38,8 +38,6 @@ gba_create(void)
 
     memset(gba, 0, sizeof(*gba));
 
-    logln(HS_INFO, "Create");
-
     // Channels
     {
         pthread_mutex_init(&gba->channels.messages.lock, NULL);
@@ -59,12 +57,10 @@ gba_process_message(
 ) {
     switch (message->header.kind) {
         case MESSAGE_EXIT: {
-            printf("EXIT\n");
             gba->exit = true;
             break;
         };
         case MESSAGE_RUN: {
-            printf("RUN\n");
             if (gba->state != GBA_STATE_RUN) {
                 struct notification notif;
 
@@ -79,7 +75,6 @@ gba_process_message(
             break;
         };
         case MESSAGE_PAUSE: {
-            printf("PAUSE\n");
             if (gba->state != GBA_STATE_PAUSE) {
                 struct notification notif;
 
@@ -133,6 +128,5 @@ void
 gba_delete(
     struct gba *gba
 ) {
-    logln(HS_INFO, "Delete");
     free(gba);
 }

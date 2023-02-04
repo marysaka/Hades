@@ -1,4 +1,6 @@
-use hs_gba::{Gba, Message, MessageChannel, NotificationChannel};
+use hs_gba::{Gba, Message, MessageChannel, NotificationChannel, Notification};
+
+use reedline::{DefaultPrompt, Reedline, Signal};
 
 mod commands;
 
@@ -16,22 +18,48 @@ impl<'a> Debugger<'a> {
         }
     }
 
-    pub fn execute(&mut self, cmd: &str) {
+    fn wait_for_gba(&mut self) {
+        // Process notifications sent by the gba
+        loop {
+            self.notification_channel.wait();
+            for notif in self.notification_channel.pop() {
+                if let Notification::Pause = notif {
+                    return
+                }
+            }
+        }
+    }
+
+    fn execute(&mut self, cmd: &str) {
         let args = cmd.split_whitespace().collect::<Vec<_>>();
 
-        if args.len() != 1 {
-            println!("Invalid command.");
+        if args.len() == 0 {
             return
         }
 
         match args[0] {
             "run" => {
-                self.message_channel.send(Message::Run)
-            },
-            "pause" => {
-                self.message_channel.send(Message::Pause)
+                self.message_channel.send(Message::Run);
+                self.wait_for_gba();
+
             },
             _ => println!("Invalid command."),
+        }
+    }
+
+    pub fn repl(&mut self) {
+        let mut line_editor = Reedline::create();
+        let prompt = DefaultPrompt::default();
+
+        loop {
+            let sig = line_editor.read_line(&prompt);
+            match sig {
+                Ok(Signal::Success(buffer)) => {
+                    self.execute(&buffer);
+                }
+                Ok(Signal::CtrlD) => break,
+                _ => (),
+            }
         }
     }
 }

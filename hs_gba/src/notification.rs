@@ -40,6 +40,7 @@ impl NotificationChannel {
                 event = bindings::channel_next(msg_channel, event);
             }
 
+            bindings::channel_clear(msg_channel);
             bindings::channel_release(msg_channel);
         }
 

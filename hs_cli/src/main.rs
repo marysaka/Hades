@@ -1,57 +1,27 @@
 use hs_dbg::Debugger;
-use hs_gba::{Gba, Message, Notification};
+use hs_gba::{Gba, Message};
 
-use crossbeam::thread;
-use reedline::{DefaultPrompt, Reedline, Signal};
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref GBA: Gba = Gba::new();
+}
 
 fn main() {
-    let gba = Gba::new();
-    let (msg_channels, notification_channel) = gba.channels();
-    let mut debugger = Debugger::from(&gba);
+    let mut debugger = Debugger::from(&GBA);
+    let (msg_channel, _) = GBA.channels();
 
-    thread::scope(|s| {
-        s.spawn(|_| {
-            gba.run();
-        });
+    ctrlc::set_handler(|| {
+        let (msg_channel, _) = GBA.channels();
+        msg_channel.send(Message::Pause);
+    }).expect("Error setting Ctrl-C handler");
 
-        let mut line_editor = Reedline::create();
-        let prompt = DefaultPrompt::default();
+    let gba_thread = std::thread::spawn(|| {
+        GBA.run();
+    });
 
-        loop {
-            let sig = line_editor.read_line(&prompt);
-            match sig {
-                Ok(Signal::Success(buffer)) => {
-                    debugger.execute(&buffer);
-                }
-                Ok(Signal::CtrlC) => {
-                    msg_channels.send(Message::Pause);
-                },
-                Ok(Signal::CtrlD) => break,
-                _ => (),
-            }
+    debugger.repl();
 
-            let mut is_running = false;
-
-            loop {
-                // Process notifications sent by the gba
-                for notif in notification_channel.pop() {
-                    match notif {
-                        Notification::Run => is_running = true,
-                        Notification::Pause => is_running = false,
-                    }
-                }
-
-                // Wait if the GBA is running, leave the loop if it is not.
-                if is_running {
-                    println!("WAITING");
-                    notification_channel.wait()
-                } else {
-                    println!("PROMPT AGAIN");
-                    break;
-                }
-            }
-        }
-
-        msg_channels.send(Message::Exit);
-    }).unwrap();
+    msg_channel.send(Message::Exit);
+    gba_thread.join().expect("Failed to join the GBA thread");
 }
