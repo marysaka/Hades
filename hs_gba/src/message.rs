@@ -21,7 +21,7 @@ impl Message {
         }
     }
 
-    unsafe fn send(self, channel: &MessageChannelLocked) {
+    unsafe fn send_over(self, channel: &MessageChannelLocked) {
         let raw_channel = &mut (*channel.inner).channels.messages;
 
         match self {
@@ -106,7 +106,7 @@ impl<'a> MessageChannelLocked<'a> {
 
     pub fn send(&self, message: Message) {
         unsafe {
-            message.send(self);
+            message.send_over(self);
         }
     }
 }
