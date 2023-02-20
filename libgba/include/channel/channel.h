@@ -10,11 +10,6 @@
 #pragma once
 
 #include "hades.h"
-#include "config.h"
-
-/*
-** Events & Channels
-*/
 
 struct event_header {
     int32_t kind;
@@ -34,40 +29,6 @@ struct channel {
 struct channels {
     struct channel messages;        // Sent by the frontned to the emulator
     struct channel notifications;   // Sent by the emulator to the frontend
-};
-
-/*
-** Messages
-*/
-
-enum message_kind {
-    MESSAGE_EXIT,
-    MESSAGE_RESET,
-    MESSAGE_RUN,
-    MESSAGE_PAUSE,
-};
-
-struct message {
-    struct event_header header;
-};
-
-struct message_reset {
-    struct event_header header;
-    struct gba_config config;
-};
-
-/*
-** Notifications
-*/
-
-enum notification_kind {
-    NOTIFICATION_RUN,
-    NOTIFICATION_PAUSE,
-    NOTIFICATION_RESET,
-};
-
-struct notification {
-    struct event_header header;
 };
 
 /* channel.c */

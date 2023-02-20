@@ -3,12 +3,14 @@ mod gui;
 
 use crate::gui::Gui;
 
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs;
 
 use hs_dbg::Debugger;
 use hs_gba::{
-    BackupStorageType, Gba, GbaConfig, Message, Notification, GBA_SCREEN_HEIGHT, GBA_SCREEN_WIDTH,
+    BackupStorageType, Gba, GbaConfig, Key, Message, Notification, GBA_SCREEN_HEIGHT,
+    GBA_SCREEN_WIDTH,
 };
 
 use clap::Parser;
@@ -132,6 +134,19 @@ fn main() {
         debugger.repl();
     });
 
+    // Quick default keybinds
+    let mut keybinds = HashMap::new();
+    keybinds.insert(Key::A, VirtualKeyCode::P);
+    keybinds.insert(Key::B, VirtualKeyCode::L);
+    keybinds.insert(Key::L, VirtualKeyCode::E);
+    keybinds.insert(Key::R, VirtualKeyCode::O);
+    keybinds.insert(Key::Up, VirtualKeyCode::W);
+    keybinds.insert(Key::Down, VirtualKeyCode::S);
+    keybinds.insert(Key::Left, VirtualKeyCode::A);
+    keybinds.insert(Key::Right, VirtualKeyCode::D);
+    keybinds.insert(Key::Select, VirtualKeyCode::Back);
+    keybinds.insert(Key::Start, VirtualKeyCode::Return);
+
     // Run the event loop.
     event_loop.run(move |event, _, control_flow| {
         // Handle draw request
@@ -157,9 +172,18 @@ fn main() {
         gui.handle_event(&window, &event);
 
         if input.update(&event) {
+            // Handle GBA keybinds
+            for (bind, key) in keybinds.iter() {
+                if input.key_pressed(*key) || input.key_released(*key) {
+                    msg_channel.lock_and_send(Message::Key {
+                        key: *bind,
+                        pressed: input.key_pressed(*key),
+                    });
+                }
+            }
+
             // Handle all close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() || dbg_thread.is_finished()
-            {
+            if input.quit() || dbg_thread.is_finished() {
                 *control_flow = ControlFlow::Exit;
 
                 // We create a useless Reedline instance to ensure the terminal is reset

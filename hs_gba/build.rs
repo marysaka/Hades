@@ -15,11 +15,13 @@ fn main() {
 
     bindgen::Builder::default()
         .header("../libgba/include/gba.h")
+        .header("../libgba/include/channel/event.h")
+        .clang_arg("-I../libgba/include")
         .clang_arg("-fms-extensions")
         .opaque_type(r"(core|scheduler|memory|ppu|apu|io|gpio).*")
         .allowlist_function(r"(gba|channel)_.*")
         .allowlist_type(
-            r"(gba|shared_data|channels|message|notification|event|backup_storage_types).*",
+            r"(gba|shared_data|channels|message|notification|event|backup_storage_types|keys).*",
         )
         .default_enum_style(bindgen::EnumVariation::Rust {
             non_exhaustive: true,

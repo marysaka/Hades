@@ -4,11 +4,43 @@ use crate::config::GbaConfig;
 use crate::gba::Gba;
 use crate::libgba_sys;
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
+pub enum Key {
+    A,
+    B,
+    L,
+    R,
+    Up,
+    Down,
+    Left,
+    Right,
+    Start,
+    Select,
+}
+
+impl Key {
+    pub(crate) fn raw(&self) -> libgba_sys::keys {
+        match self {
+            Key::A => libgba_sys::keys::KEY_A,
+            Key::B => libgba_sys::keys::KEY_B,
+            Key::L => libgba_sys::keys::KEY_L,
+            Key::R => libgba_sys::keys::KEY_R,
+            Key::Up => libgba_sys::keys::KEY_UP,
+            Key::Down => libgba_sys::keys::KEY_DOWN,
+            Key::Left => libgba_sys::keys::KEY_LEFT,
+            Key::Right => libgba_sys::keys::KEY_RIGHT,
+            Key::Start => libgba_sys::keys::KEY_START,
+            Key::Select => libgba_sys::keys::KEY_SELECT,
+        }
+    }
+}
+
 pub enum Message {
     Exit,
     Reset(GbaConfig),
     Run,
     Pause,
+    Key { key: Key, pressed: bool },
 }
 
 impl Message {
@@ -56,6 +88,17 @@ impl Message {
                         size: std::mem::size_of::<libgba_sys::message_reset>(),
                     },
                     config: config.raw(),
+                };
+                libgba_sys::channel_push(raw_channel, &msg.header);
+            }
+            Message::Key { key, pressed } => {
+                let msg = libgba_sys::message_key {
+                    header: libgba_sys::event_header {
+                        kind: libgba_sys::message_kind::MESSAGE_KEY as i32,
+                        size: std::mem::size_of::<libgba_sys::message_key>(),
+                    },
+                    key: key.raw(),
+                    pressed: pressed,
                 };
                 libgba_sys::channel_push(raw_channel, &msg.header);
             }

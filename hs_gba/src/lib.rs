@@ -10,6 +10,6 @@ pub const GBA_SCREEN_HEIGHT: u32 = 160;
 
 pub use config::{BackupStorageType, GbaConfig};
 pub use gba::Gba;
-pub use message::{Message, MessageChannel};
+pub use message::{Key, Message, MessageChannel};
 pub use notification::{Notification, NotificationChannel};
 pub use shared::GbaSharedData;

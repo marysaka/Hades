@@ -9,7 +9,8 @@
 
 #include <string.h>
 #include "hades.h"
-#include "channel.h"
+#include "channel/channel.h"
+#include "channel/event.h"
 
 /*
 ** Lock the channel.

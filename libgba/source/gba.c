@@ -10,7 +10,8 @@
 #include <string.h>
 #include "hades.h"
 #include "gba.h"
-#include "channel.h"
+#include "channel/channel.h"
+#include "channel/event.h"
 #include "core/arm.h"
 #include "core/thumb.h"
 
@@ -273,6 +274,26 @@ gba_process_message(
             channel_lock(&gba->channels.notifications);
             channel_push(&gba->channels.notifications, &notif.header);
             channel_release(&gba->channels.notifications);
+            break;
+        };
+        case MESSAGE_KEY: {
+            struct message_key const *msg_key;
+
+            msg_key = (struct message_key const *)message;
+            switch (msg_key->key) {
+                case KEY_A:         gba->io.keyinput.a = !msg_key->pressed; break;
+                case KEY_B:         gba->io.keyinput.b = !msg_key->pressed; break;
+                case KEY_L:         gba->io.keyinput.l = !msg_key->pressed; break;
+                case KEY_R:         gba->io.keyinput.r = !msg_key->pressed; break;
+                case KEY_UP:        gba->io.keyinput.up = !msg_key->pressed; break;
+                case KEY_DOWN:      gba->io.keyinput.down = !msg_key->pressed; break;
+                case KEY_RIGHT:     gba->io.keyinput.right = !msg_key->pressed; break;
+                case KEY_LEFT:      gba->io.keyinput.left = !msg_key->pressed; break;
+                case KEY_START:     gba->io.keyinput.start = !msg_key->pressed; break;
+                case KEY_SELECT:    gba->io.keyinput.select = !msg_key->pressed; break;
+            };
+
+            io_scan_keypad_irq(gba);
             break;
         };
     }
