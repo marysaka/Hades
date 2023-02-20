@@ -119,6 +119,7 @@ impl Gui {
         window: &winit::window::Window,
         event: &winit::event::Event<()>,
     ) {
-        self.platform.handle_event(self.imgui.io_mut(), window, event);
+        self.platform
+            .handle_event(self.imgui.io_mut(), window, event);
     }
 }

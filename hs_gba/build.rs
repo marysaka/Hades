@@ -1,4 +1,4 @@
-use std::{path::PathBuf, env};
+use std::{env, path::PathBuf};
 
 fn main() {
     cargo_emit::rerun_if_changed!("../libgba/");
@@ -18,8 +18,12 @@ fn main() {
         .clang_arg("-fms-extensions")
         .opaque_type(r"(core|scheduler|memory|ppu|apu|io|gpio).*")
         .allowlist_function(r"(gba|channel)_.*")
-        .allowlist_type(r"(gba|shared_data|channels|message|notification|event|backup_storage_types).*")
-        .default_enum_style(bindgen::EnumVariation::Rust { non_exhaustive: true })
+        .allowlist_type(
+            r"(gba|shared_data|channels|message|notification|event|backup_storage_types).*",
+        )
+        .default_enum_style(bindgen::EnumVariation::Rust {
+            non_exhaustive: true,
+        })
         .generate()
         .expect("Unable to generate libgba bindings.")
         .write_to_file(out_path.join("libgba_sys.rs"))

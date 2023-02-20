@@ -7,7 +7,9 @@ use std::fmt::Debug;
 use std::fs;
 
 use hs_dbg::Debugger;
-use hs_gba::{Gba, Message, Notification, GbaConfig, GBA_SCREEN_WIDTH, GBA_SCREEN_HEIGHT, BackupStorageType};
+use hs_gba::{
+    BackupStorageType, Gba, GbaConfig, Message, Notification, GBA_SCREEN_HEIGHT, GBA_SCREEN_WIDTH,
+};
 
 use clap::Parser;
 use lazy_static::lazy_static;
@@ -51,7 +53,7 @@ fn main() {
         Ok(rom) => config.with_rom(rom),
         Err(e) => {
             eprintln!("Failed to read ROM: {}: {}", args.rom.display(), e);
-            return
+            return;
         }
     }
 
@@ -60,7 +62,7 @@ fn main() {
         Ok(bios) => config.with_bios(bios),
         Err(e) => {
             eprintln!("Failed to read BIOS: {}: {}", args.bios.display(), e);
-            return
+            return;
         }
     }
 
@@ -69,8 +71,14 @@ fn main() {
     let mut input = WinitInputHelper::new();
     let window = WindowBuilder::new()
         .with_title("Hades")
-        .with_inner_size(LogicalSize::new(DEFAULT_WINDOW_WIDTH as f64, DEFAULT_WINDOW_HEIGHT as f64))
-        .with_min_inner_size(LogicalSize::new(DEFAULT_WINDOW_WIDTH as f64, DEFAULT_WINDOW_HEIGHT as f64))
+        .with_inner_size(LogicalSize::new(
+            DEFAULT_WINDOW_WIDTH as f64,
+            DEFAULT_WINDOW_HEIGHT as f64,
+        ))
+        .with_min_inner_size(LogicalSize::new(
+            DEFAULT_WINDOW_WIDTH as f64,
+            DEFAULT_WINDOW_HEIGHT as f64,
+        ))
         .build(&event_loop)
         .unwrap();
 
@@ -81,9 +89,10 @@ fn main() {
         SurfaceTexture::new(
             window.inner_size().width,
             window.inner_size().height,
-            &window
-        )
-    ).expect("Failed to create the window's framebuffer");
+            &window,
+        ),
+    )
+    .expect("Failed to create the window's framebuffer");
 
     let mut gui = Gui::new(&window, &pixels);
 
@@ -99,7 +108,7 @@ fn main() {
     'notif_loop: loop {
         notif_channel.wait();
         for notif in notif_channel.pop() {
-            if let Notification::Reset{..} = notif {
+            if let Notification::Reset { .. } = notif {
                 break 'notif_loop;
             }
         }
@@ -113,7 +122,8 @@ fn main() {
         // Set the Ctrl-C handler
         ctrlc::set_handler(|| {
             GBA.request_pause();
-        }).expect("Error setting Ctrl-C handler");
+        })
+        .expect("Error setting Ctrl-C handler");
 
         // Start the GBA
         msg_channel.lock_and_send(Message::Run);
@@ -124,30 +134,32 @@ fn main() {
 
     // Run the event loop.
     event_loop.run(move |event, _, control_flow| {
-
         // Handle draw request
         if let Event::RedrawRequested(_) = event {
             // Draw the game's content
-            GBA.shared_data().copy_framebuffer_into(pixels.get_frame_mut());
+            GBA.shared_data()
+                .copy_framebuffer_into(pixels.get_frame_mut());
 
             // Prepare the Gui
             gui.prepare(&window).expect("Gui::prepare() failed");
 
             // Render everything together
-            pixels.render_with(|encoder, render_target, context| {
-                context.scaling_renderer.render(encoder, render_target);
-                gui.render(&window, encoder, render_target, context)?;
-                Ok(())
-            }).expect("Pixels::render() failed");
+            pixels
+                .render_with(|encoder, render_target, context| {
+                    context.scaling_renderer.render(encoder, render_target);
+                    gui.render(&window, encoder, render_target, context)?;
+                    Ok(())
+                })
+                .expect("Pixels::render() failed");
         }
 
         // Transfer events to the Gui
         gui.handle_event(&window, &event);
 
         if input.update(&event) {
-
             // Handle all close events
-            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() || dbg_thread.is_finished() {
+            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() || dbg_thread.is_finished()
+            {
                 *control_flow = ControlFlow::Exit;
 
                 // We create a useless Reedline instance to ensure the terminal is reset
@@ -158,7 +170,9 @@ fn main() {
             // Resize the surface texture if the window was resized
             if let Some(size) = input.window_resized() {
                 if size.width > 0 && size.height > 0 {
-                    pixels.resize_surface(size.width, size.height).expect("Pixels::resize_surface() failed");
+                    pixels
+                        .resize_surface(size.width, size.height)
+                        .expect("Pixels::resize_surface() failed");
                 }
             }
 

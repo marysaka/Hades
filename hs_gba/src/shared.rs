@@ -1,4 +1,4 @@
-use crate::{Gba, libgba_sys};
+use crate::{libgba_sys, Gba};
 
 use std::marker::PhantomData;
 

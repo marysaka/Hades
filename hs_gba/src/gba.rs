@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
-use crate::{libgba_sys, GbaSharedData};
-use crate::notification::NotificationChannel;
 use crate::message::MessageChannel;
+use crate::notification::NotificationChannel;
+use crate::{libgba_sys, GbaSharedData};
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Gba {
@@ -12,9 +12,7 @@ pub struct Gba {
 impl Gba {
     pub fn new() -> Self {
         Self {
-            inner: unsafe {
-                libgba_sys::gba_create()
-            }
+            inner: unsafe { libgba_sys::gba_create() },
         }
     }
 

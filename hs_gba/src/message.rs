@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
-use crate::libgba_sys;
-use crate::gba::Gba;
 use crate::config::GbaConfig;
+use crate::gba::Gba;
+use crate::libgba_sys;
 
 pub enum Message {
     Exit,
@@ -17,7 +17,7 @@ impl Message {
             header: libgba_sys::event_header {
                 kind,
                 size: std::mem::size_of::<libgba_sys::message>(),
-            }
+            },
         }
     }
 
@@ -26,14 +26,29 @@ impl Message {
 
         match self {
             Message::Exit => {
-                libgba_sys::channel_push(raw_channel, &self.raw_no_extension(libgba_sys::message_kind::MESSAGE_EXIT as i32).header);
-            },
+                libgba_sys::channel_push(
+                    raw_channel,
+                    &self
+                        .raw_no_extension(libgba_sys::message_kind::MESSAGE_EXIT as i32)
+                        .header,
+                );
+            }
             Message::Run => {
-                libgba_sys::channel_push(raw_channel, &self.raw_no_extension(libgba_sys::message_kind::MESSAGE_RUN as i32).header);
-            },
+                libgba_sys::channel_push(
+                    raw_channel,
+                    &self
+                        .raw_no_extension(libgba_sys::message_kind::MESSAGE_RUN as i32)
+                        .header,
+                );
+            }
             Message::Pause => {
-                libgba_sys::channel_push(raw_channel, &self.raw_no_extension(libgba_sys::message_kind::MESSAGE_PAUSE as i32).header);
-            },
+                libgba_sys::channel_push(
+                    raw_channel,
+                    &self
+                        .raw_no_extension(libgba_sys::message_kind::MESSAGE_PAUSE as i32)
+                        .header,
+                );
+            }
             Message::Reset(config) => {
                 let msg = libgba_sys::message_reset {
                     header: libgba_sys::event_header {
@@ -43,7 +58,7 @@ impl Message {
                     config: config.raw(),
                 };
                 libgba_sys::channel_push(raw_channel, &msg.header);
-            },
+            }
         }
     }
 }

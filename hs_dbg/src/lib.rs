@@ -1,8 +1,6 @@
-use hs_gba::{Gba, Message, MessageChannel, NotificationChannel, Notification};
+use hs_gba::{Gba, Message, MessageChannel, Notification, NotificationChannel};
 
 use reedline::{DefaultPrompt, Reedline, Signal};
-
-mod commands;
 
 pub struct Debugger<'a> {
     message_channel: MessageChannel<'a>,
@@ -24,7 +22,7 @@ impl<'a> Debugger<'a> {
             self.notification_channel.wait();
             for notif in self.notification_channel.pop() {
                 if let Notification::Pause = notif {
-                    return
+                    return;
                 }
             }
         }
@@ -34,15 +32,14 @@ impl<'a> Debugger<'a> {
         let args = cmd.split_whitespace().collect::<Vec<_>>();
 
         if args.len() == 0 {
-            return
+            return;
         }
 
         match args[0] {
             "run" => {
                 self.message_channel.lock_and_send(Message::Run);
                 self.wait_for_gba();
-
-            },
+            }
             _ => println!("Invalid command."),
         }
     }

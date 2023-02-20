@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
-use crate::libgba_sys;
 use crate::gba::Gba;
+use crate::libgba_sys;
 
 pub enum Notification {
     Run,
@@ -13,9 +13,16 @@ impl Notification {
     unsafe fn from_raw(raw: *const libgba_sys::notification) -> Self {
         match (*raw).header.kind {
             x if x == libgba_sys::notification_kind::NOTIFICATION_RUN as i32 => Notification::Run,
-            x if x  == libgba_sys::notification_kind::NOTIFICATION_PAUSE as i32 => Notification::Pause,
-            x if x  == libgba_sys::notification_kind::NOTIFICATION_RESET as i32 => Notification::Reset,
-            kind => panic!("Invalid notification kind {} received from the GBA thread", kind),
+            x if x == libgba_sys::notification_kind::NOTIFICATION_PAUSE as i32 => {
+                Notification::Pause
+            }
+            x if x == libgba_sys::notification_kind::NOTIFICATION_RESET as i32 => {
+                Notification::Reset
+            }
+            kind => panic!(
+                "Invalid notification kind {} received from the GBA thread",
+                kind
+            ),
         }
     }
 }
@@ -43,7 +50,9 @@ impl<'a> NotificationChannel<'a> {
 
             let mut event = libgba_sys::channel_next(msg_channel, std::ptr::null());
             while event != std::ptr::null() {
-                ret.push(Notification::from_raw(event as *const libgba_sys::notification));
+                ret.push(Notification::from_raw(
+                    event as *const libgba_sys::notification,
+                ));
                 event = libgba_sys::channel_next(msg_channel, event);
             }
 
