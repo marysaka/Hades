@@ -5,3 +5,17 @@ edition = "2021"
 
 [dependencies]
 hs_gba = { path = "../hs_gba/" }
+hs_dbg = { path = "../hs_dbg/" }
+ctrlc = "3.2.4"
+lazy_static = "1.4.0"
+winit = "0.27.2"
+winit_input_helper = "0.13.0"
+imgui = "0.10.0"
+imgui-winit-support = "0.10.0"
+imgui-wgpu = "0.22.0"
+clap = { version = "4.1.6", features = ["derive"] }
+reedline = "0.15.0"
+
+[dependencies.pixels]
+git = "https://github.com/parasyte/pixels.git"
+rev = "860559272a09b1bf2e2a021b627ea33453d7f029"

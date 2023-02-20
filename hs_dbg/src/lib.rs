@@ -5,8 +5,8 @@ use reedline::{DefaultPrompt, Reedline, Signal};
 mod commands;
 
 pub struct Debugger<'a> {
-    message_channel: &'a MessageChannel,
-    notification_channel: &'a NotificationChannel,
+    message_channel: MessageChannel<'a>,
+    notification_channel: NotificationChannel<'a>,
 }
 
 impl<'a> Debugger<'a> {
@@ -18,7 +18,7 @@ impl<'a> Debugger<'a> {
         }
     }
 
-    fn wait_for_gba(&mut self) {
+    pub fn wait_for_gba(&mut self) {
         // Process notifications sent by the gba
         loop {
             self.notification_channel.wait();
@@ -39,7 +39,7 @@ impl<'a> Debugger<'a> {
 
         match args[0] {
             "run" => {
-                self.message_channel.send(Message::Run);
+                self.message_channel.lock_and_send(Message::Run);
                 self.wait_for_gba();
 
             },

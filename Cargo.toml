@@ -1,7 +1,7 @@
 [workspace]
+resolver = "2"
 members = [
     "hs_app",
-    "hs_cli",
     "hs_dbg",
     "hs_gba",
 ]

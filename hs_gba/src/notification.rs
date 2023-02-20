@@ -1,29 +1,36 @@
-use crate::bindings;
+use std::marker::PhantomData;
+
+use crate::libgba_sys;
+use crate::gba::Gba;
 
 pub enum Notification {
     Run,
     Pause,
+    Reset,
 }
 
 impl Notification {
-    unsafe fn from_raw(raw: *const bindings::notification) -> Self {
+    unsafe fn from_raw(raw: *const libgba_sys::notification) -> Self {
         match (*raw).header.kind {
-            x if x == bindings::notification_kind::NOTIFICATION_RUN as i32 => Notification::Run,
-            x if x  == bindings::notification_kind::NOTIFICATION_PAUSE as i32 => Notification::Pause,
+            x if x == libgba_sys::notification_kind::NOTIFICATION_RUN as i32 => Notification::Run,
+            x if x  == libgba_sys::notification_kind::NOTIFICATION_PAUSE as i32 => Notification::Pause,
+            x if x  == libgba_sys::notification_kind::NOTIFICATION_RESET as i32 => Notification::Reset,
             kind => panic!("Invalid notification kind {} received from the GBA thread", kind),
         }
     }
 }
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub struct NotificationChannel {
-    inner: *mut bindings::gba,
+pub struct NotificationChannel<'a> {
+    inner: *mut libgba_sys::gba,
+    phantom: PhantomData<&'a Gba>,
 }
 
-impl NotificationChannel {
-    pub(crate) fn from(ptr: *mut bindings::gba) -> Self {
+impl<'a> NotificationChannel<'a> {
+    pub(crate) fn from(gba: &Gba) -> Self {
         Self {
-            inner: ptr,
+            inner: gba.inner,
+            phantom: PhantomData,
         }
     }
 
@@ -32,16 +39,16 @@ impl NotificationChannel {
 
         unsafe {
             let msg_channel = &mut (*self.inner).channels.notifications;
-            bindings::channel_lock(msg_channel);
+            libgba_sys::channel_lock(msg_channel);
 
-            let mut event = bindings::channel_next(msg_channel, std::ptr::null());
+            let mut event = libgba_sys::channel_next(msg_channel, std::ptr::null());
             while event != std::ptr::null() {
-                ret.push(Notification::from_raw(event as *const bindings::notification));
-                event = bindings::channel_next(msg_channel, event);
+                ret.push(Notification::from_raw(event as *const libgba_sys::notification));
+                event = libgba_sys::channel_next(msg_channel, event);
             }
 
-            bindings::channel_clear(msg_channel);
-            bindings::channel_release(msg_channel);
+            libgba_sys::channel_clear(msg_channel);
+            libgba_sys::channel_release(msg_channel);
         }
 
         ret
@@ -49,12 +56,9 @@ impl NotificationChannel {
 
     pub fn wait(&self) {
         unsafe {
-            bindings::channel_lock(&mut (*self.inner).channels.notifications);
-            bindings::channel_wait(&mut (*self.inner).channels.notifications);
-            bindings::channel_release(&mut (*self.inner).channels.notifications);
+            libgba_sys::channel_lock(&mut (*self.inner).channels.notifications);
+            libgba_sys::channel_wait(&mut (*self.inner).channels.notifications);
+            libgba_sys::channel_release(&mut (*self.inner).channels.notifications);
         }
     }
 }
-
-unsafe impl Send for NotificationChannel {}
-unsafe impl Sync for NotificationChannel {}

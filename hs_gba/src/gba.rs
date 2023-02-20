@@ -1,34 +1,38 @@
-use crate::bindings;
+use std::marker::PhantomData;
+
+use crate::{libgba_sys, GbaSharedData};
 use crate::notification::NotificationChannel;
 use crate::message::MessageChannel;
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Gba {
-    inner: *mut bindings::gba,
-    message_channel: MessageChannel,
-    notification_channel: NotificationChannel,
+    pub(crate) inner: *mut libgba_sys::gba,
 }
 
 impl Gba {
     pub fn new() -> Self {
-        let inner = unsafe {
-            bindings::gba_create()
-        };
-
         Self {
-            inner,
-            message_channel: MessageChannel::from(inner),
-            notification_channel: NotificationChannel::from(inner),
+            inner: unsafe {
+                libgba_sys::gba_create()
+            }
         }
     }
 
-    pub fn channels(&self) -> (&MessageChannel, &NotificationChannel) {
-        (&self.message_channel, &self.notification_channel)
+    pub fn channels<'a>(&self) -> (MessageChannel<'a>, NotificationChannel) {
+        (MessageChannel::from(self), NotificationChannel::from(self))
     }
 
-    pub fn run(&self) {
+    pub fn shared_data<'a>(&self) -> GbaSharedData<'a> {
+        GbaSharedData::from(self)
+    }
+
+    pub fn runner<'a>(&self) -> GbaRunner<'a> {
+        GbaRunner::from(self.inner)
+    }
+
+    pub fn request_pause(&self) {
         unsafe {
-            bindings::gba_run(self.inner);
+            libgba_sys::gba_request_pause(self.inner);
         }
     }
 }
@@ -36,10 +40,33 @@ impl Gba {
 impl Drop for Gba {
     fn drop(&mut self) {
         unsafe {
-            bindings::gba_delete(self.inner);
+            println!("DROP");
+            libgba_sys::gba_delete(self.inner);
         }
     }
 }
 
 unsafe impl Send for Gba {}
 unsafe impl Sync for Gba {}
+
+pub struct GbaRunner<'a> {
+    inner: *mut libgba_sys::gba,
+    phantom: PhantomData<&'a Gba>,
+}
+
+impl<'a> GbaRunner<'a> {
+    pub(crate) fn from(raw: *mut libgba_sys::gba) -> Self {
+        Self {
+            inner: raw,
+            phantom: PhantomData,
+        }
+    }
+    pub fn run(&mut self) {
+        unsafe {
+            libgba_sys::gba_run(self.inner);
+        }
+    }
+}
+
+unsafe impl<'a> Send for GbaRunner<'a> {}
+unsafe impl<'a> Sync for GbaRunner<'a> {}
