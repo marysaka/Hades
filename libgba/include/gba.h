@@ -81,6 +81,8 @@ struct gba_config {
 
     // The kind of storage type to use.
     enum backup_storage_types backup_storage_type;
+    uint8_t const *backup;
+    size_t backup_size;
 };
 
 /* source/gba.c */

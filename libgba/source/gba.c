@@ -56,13 +56,17 @@ gba_reset(
     struct gba *gba,
     struct gba_config const *config
 ) {
+    // Free pointers from any previous run
+    {
+        free(gba->scheduler.events);
+        free(gba->memory.backup_storage.data);
+    }
+
     // Scheduler
     {
         struct scheduler *scheduler;
 
         scheduler = &gba->scheduler;
-        free(scheduler->events);
-
         memset(scheduler, 0, sizeof(*scheduler));
 
         scheduler->events_size = 64;
@@ -81,7 +85,6 @@ gba_reset(
         memcpy(gba->memory.bios, config->bios, min(config->bios_size, BIOS_SIZE));
         memcpy(gba->memory.rom, config->rom, min(config->rom_size, CART_SIZE));
         gba->memory.rom_size = config->rom_size;
-        printf("ROM=%08x LEN=%zx\n", *(uint32_t *)gba->memory.rom, config->rom_size);
     }
 
     // IO
@@ -188,8 +191,40 @@ gba_reset(
 
     // Backup storage
     {
-        gba->memory.backup_storage_type = config->backup_storage_type;
-        mem_backup_storage_init(gba);
+        gba->memory.backup_storage.type = config->backup_storage_type;
+        switch (gba->memory.backup_storage.type) {
+            case BACKUP_EEPROM_4K: {
+                gba->memory.backup_storage.eeprom.mask = (gba->memory.rom_size > 16 * 1024 * 1024) ? 0x01FFFF00 : 0xFF000000;
+                gba->memory.backup_storage.eeprom.range = (gba->memory.rom_size > 16 * 1024 * 1024) ? 0x01FFFF00 : 0x0d000000;
+                gba->memory.backup_storage.eeprom.address_mask = EEPROM_4K_ADDR_MASK;
+                gba->memory.backup_storage.eeprom.address_len = EEPROM_4K_ADDR_LEN;
+                gba->memory.backup_storage.size = EEPROM_4K_SIZE;
+                break;
+            };
+            case BACKUP_EEPROM_64K: {
+                gba->memory.backup_storage.eeprom.mask = (gba->memory.rom_size > 16 * 1024 * 1024) ? 0x01FFFF00 : 0xFF000000;
+                gba->memory.backup_storage.eeprom.range = (gba->memory.rom_size > 16 * 1024 * 1024) ? 0x01FFFF00 : 0x0d000000;
+                gba->memory.backup_storage.eeprom.address_mask = EEPROM_64K_ADDR_MASK;
+                gba->memory.backup_storage.eeprom.address_len = EEPROM_64K_ADDR_LEN;
+                gba->memory.backup_storage.size = EEPROM_64K_SIZE;
+                break;
+            };
+            case BACKUP_SRAM: gba->memory.backup_storage.size = SRAM_SIZE; break;
+            case BACKUP_FLASH64: gba->memory.backup_storage.size = FLASH64_SIZE; break;
+            case BACKUP_FLASH128:gba->memory.backup_storage.size = FLASH128_SIZE; break;
+            case BACKUP_NONE: gba->memory.backup_storage.size = 0; break;
+        }
+
+        if (gba->memory.backup_storage.size) {
+            gba->memory.backup_storage.data = calloc(1, gba->memory.backup_storage.size);
+            hs_assert(gba->memory.backup_storage.data);
+
+            if (config->backup && config->backup_size) {
+                printf("BACKUP PROVIDED\n");
+                memcpy(gba->memory.backup_storage.data, config->backup, min(gba->memory.backup_storage.size, config->backup_size));
+            }
+        }
+
     }
 
     // Core

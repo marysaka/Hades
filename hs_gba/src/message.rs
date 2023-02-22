@@ -4,6 +4,10 @@ use crate::config::GbaConfig;
 use crate::gba::Gba;
 use crate::libgba_sys;
 
+// TODO FIXME
+// There's an unsoundness here with GbaConfig that can be dropped before the
+// message is processed by the Gba thread.
+
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum Key {
     A,
@@ -35,15 +39,15 @@ impl Key {
     }
 }
 
-pub enum Message {
+pub enum Message<'a> {
     Exit,
-    Reset(GbaConfig),
+    Reset(&'a GbaConfig),
     Run,
     Pause,
     Key { key: Key, pressed: bool },
 }
 
-impl Message {
+impl<'a> Message<'a> {
     fn raw_no_extension(&self, kind: i32) -> libgba_sys::message {
         libgba_sys::message {
             header: libgba_sys::event_header {

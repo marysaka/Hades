@@ -116,22 +116,12 @@ enum access_types {
 ** The different types of backup storage a game can use.
 */
 enum backup_storage_types {
-    BACKUP_MIN = -1,
-
     BACKUP_NONE = 0,
     BACKUP_EEPROM_4K = 1,
     BACKUP_EEPROM_64K = 2,
     BACKUP_SRAM = 3,
     BACKUP_FLASH64 = 4,
     BACKUP_FLASH128 = 5,
-
-    BACKUP_MAX = 5,
-};
-
-enum backup_storage_sources {
-    BACKUP_SOURCE_AUTO_DETECT,
-    BACKUP_SOURCE_MANUAL,
-    BACKUP_SOURCE_DATABASE,
 };
 
 enum flash_states {
@@ -218,16 +208,20 @@ struct memory {
     size_t rom_size;
 
     // Backup Storage
-    uint8_t *backup_storage_data;
-    enum backup_storage_types backup_storage_type;
-    enum backup_storage_sources backup_storage_source;
-    atomic_bool backup_storage_dirty;
+    struct {
+        union {
+            // Flash memory
+            struct flash flash;
 
-    // Flash memory
-    struct flash flash;
+            // EEPROM memory
+            struct eeprom eeprom;
+        };
+        uint8_t *data;
+        size_t size;
+        enum backup_storage_types type;
 
-    // EEPROM memory
-    struct eeprom eeprom;
+        atomic_bool dirty;
+    } backup_storage;
 
     // Prefetch
     struct prefetch_buffer pbuffer;
@@ -295,9 +289,6 @@ uint8_t mem_flash_read8(struct gba const *gba, uint32_t addr);
 void mem_flash_write8(struct gba *gba, uint32_t addr, uint8_t val);
 
 /* source/memory/storage/storage.c */
-extern size_t const backup_storage_sizes[];
-void mem_backup_storage_detect(struct gba *gba);
-void mem_backup_storage_init(struct gba *gba);
 uint8_t mem_backup_storage_read8(struct gba const *gba, uint32_t addr);
 void mem_backup_storage_write8(struct gba *gba, uint32_t addr, uint8_t value);
 void mem_backup_storage_write_to_disk(struct gba *gba);

@@ -2,7 +2,6 @@ use crate::libgba_sys;
 
 #[allow(non_camel_case_types)]
 pub enum BackupStorageType {
-    None,
     EEPROM_4K = 1,
     EEPROM_64K = 2,
     SRAM = 3,
@@ -13,7 +12,6 @@ pub enum BackupStorageType {
 impl BackupStorageType {
     pub(crate) fn raw(&self) -> libgba_sys::backup_storage_types {
         match self {
-            Self::None => libgba_sys::backup_storage_types::BACKUP_NONE,
             Self::EEPROM_4K => libgba_sys::backup_storage_types::BACKUP_EEPROM_4K,
             Self::EEPROM_64K => libgba_sys::backup_storage_types::BACKUP_EEPROM_64K,
             Self::SRAM => libgba_sys::backup_storage_types::BACKUP_SRAM,
@@ -29,7 +27,8 @@ pub struct GbaConfig {
     skip_bios: bool,
     audio_frequency: u32,
     rtc: bool,
-    backup_storage_type: BackupStorageType,
+    backup_storage_type: Option<BackupStorageType>,
+    backup_storage_data: Vec<u8>,
 }
 
 impl GbaConfig {
@@ -40,7 +39,8 @@ impl GbaConfig {
             skip_bios: false,
             audio_frequency: 0,
             rtc: false,
-            backup_storage_type: BackupStorageType::None,
+            backup_storage_type: None,
+            backup_storage_data: Vec::new(),
         }
     }
 
@@ -65,7 +65,18 @@ impl GbaConfig {
     }
 
     pub fn with_backup_storage_type(&mut self, backup_storage_type: BackupStorageType) {
-        self.backup_storage_type = backup_storage_type;
+        assert!(self.backup_storage_data.len() == 0);
+        self.backup_storage_type = Some(backup_storage_type);
+    }
+
+    pub fn with_backup_storage_data(&mut self, data: Vec<u8>) {
+        assert!(self.backup_storage_type.is_some());
+        self.backup_storage_data = data;
+    }
+
+    pub fn without_backup_storage(&mut self) {
+        self.backup_storage_type = None;
+        self.backup_storage_data = Vec::new();
     }
 }
 
@@ -79,7 +90,9 @@ impl GbaConfig {
             skip_bios: self.skip_bios,
             audio_frequency: self.audio_frequency,
             rtc: self.rtc,
-            backup_storage_type: self.backup_storage_type.raw(),
+            backup_storage_type: self.backup_storage_type.as_ref().and_then(|t| Some(t.raw())).unwrap_or(libgba_sys::backup_storage_types::BACKUP_NONE),
+            backup: self.backup_storage_data.as_ptr(),
+            backup_size: self.backup_storage_data.len(),
         }
     }
 }

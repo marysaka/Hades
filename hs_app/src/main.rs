@@ -48,7 +48,6 @@ fn main() {
     let (msg_channel, notif_channel) = GBA.channels();
 
     config.with_rtc(true);
-    config.with_backup_storage_type(BackupStorageType::Flash128);
 
     // Read the ROM
     match fs::read(&args.rom) {
@@ -65,6 +64,15 @@ fn main() {
         Err(e) => {
             eprintln!("Failed to read BIOS: {}: {}", args.bios.display(), e);
             return;
+        }
+    }
+
+    // Read the backup storage
+    config.with_backup_storage_type(BackupStorageType::Flash128);
+    match fs::read(&args.rom.with_extension("sav")) {
+        Ok(backup) => config.with_backup_storage_data(backup),
+        Err(e) => {
+            eprintln!("Failed to read ROM's Backup storage: {}: {}", args.rom.with_extension("sav").display(), e);
         }
     }
 
@@ -104,7 +112,7 @@ fn main() {
     });
 
     // Reset the GBA with the given configuration
-    msg_channel.lock_and_send(Message::Reset(config));
+    msg_channel.lock_and_send(Message::Reset(&config));
 
     // Wait for the reset notification
     'notif_loop: loop {

@@ -311,9 +311,8 @@ mem_openbus_read(
                 break;                                                                      \
             case CART_REGION_START ... CART_REGION_END: {                                   \
                 if (unlikely(                                                               \
-                       (_addr & (gba)->memory.eeprom.mask) == (gba)->memory.eeprom.range    \
-                    && ((gba)->memory.backup_storage_type == BACKUP_EEPROM_4K               \
-                    || (gba)->memory.backup_storage_type == BACKUP_EEPROM_64K)              \
+                    ((gba)->memory.backup_storage.type == BACKUP_EEPROM_4K || (gba)->memory.backup_storage.type == BACKUP_EEPROM_64K) \
+                    && (_addr & (gba)->memory.backup_storage.eeprom.mask) == (gba)->memory.backup_storage.eeprom.range \
                 )) {                                                                        \
                     _ret = mem_eeprom_read8(gba);                                           \
                 } else if (unlikely(_addr >= GPIO_REG_START && _addr <= GPIO_REG_END && (gba)->gpio.readable)) { \
@@ -453,9 +452,8 @@ mem_openbus_read(
                 break;                                                                          \
             };                                                                                  \
             case CART_REGION_START ... CART_REGION_END: {                                       \
-                if (   (_addr & (gba)->memory.eeprom.mask) == (gba)->memory.eeprom.range        \
-                    && ((gba)->memory.backup_storage_type == BACKUP_EEPROM_4K                   \
-                    || (gba)->memory.backup_storage_type == BACKUP_EEPROM_64K)                  \
+                if (((gba)->memory.backup_storage.type == BACKUP_EEPROM_4K || (gba)->memory.backup_storage.type == BACKUP_EEPROM_64K) \
+                    && (_addr & (gba)->memory.backup_storage.eeprom.mask) == (gba)->memory.backup_storage.eeprom.range \
                 ) {                                                                             \
                     mem_eeprom_write8((gba), (val) & 1);                                        \
                 } else if (_addr >= GPIO_REG_START && _addr <= GPIO_REG_END) {                  \
