@@ -12,8 +12,8 @@
 #include "apu.h"
 #include "scheduler.h"
 
-static void apu_sequencer(struct gba *gba, struct event_args args);
-static void apu_resample(struct gba *gba, struct event_args args);
+void apu_sequencer(struct gba *gba, struct event_args args);
+void apu_resample(struct gba *gba, struct event_args args);
 
 void
 apu_init(
