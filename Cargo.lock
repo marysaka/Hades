@@ -841,6 +841,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "ctrlc",
+ "hs_db",
  "hs_dbg",
  "hs_gba",
  "imgui",
@@ -851,6 +852,13 @@ dependencies = [
  "reedline",
  "winit",
  "winit_input_helper",
+]
+
+[[package]]
+name = "hs_db"
+version = "0.1.0"
+dependencies = [
+ "hs_gba",
 ]
 
 [[package]]

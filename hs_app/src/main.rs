@@ -7,10 +7,11 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs;
 
+use hs_db::game_database_lookup;
 use hs_dbg::Debugger;
 use hs_gba::{
-    BackupStorageType, Gba, GbaConfig, Key, Message, Notification, GBA_SCREEN_HEIGHT,
-    GBA_SCREEN_WIDTH,
+    Gba, GbaConfig, Key, Message, Notification, GBA_HEADER_GAME_CODE_LEN,
+    GBA_HEADER_GAME_CODE_OFFSET, GBA_HEADER_LEN, GBA_SCREEN_HEIGHT, GBA_SCREEN_WIDTH,
 };
 
 use clap::Parser;
@@ -45,13 +46,19 @@ struct Args {
 fn main() {
     let args = Args::parse();
     let mut config = GbaConfig::new();
+    let mut title = "";
     let (msg_channel, notif_channel) = GBA.channels();
-
-    config.with_rtc(true);
 
     // Read the ROM
     match fs::read(&args.rom) {
-        Ok(rom) => config.with_rom(rom),
+        Ok(rom) => {
+            if rom.len() < GBA_HEADER_LEN {
+                eprintln!("Invalid ROM: {}: bad header length", args.rom.display());
+                return;
+            }
+
+            config.with_rom(rom)
+        }
         Err(e) => {
             eprintln!("Failed to read ROM: {}: {}", args.rom.display(), e);
             return;
@@ -67,20 +74,66 @@ fn main() {
         }
     }
 
+    let code = std::str::from_utf8(
+        &config.rom()
+            [GBA_HEADER_GAME_CODE_OFFSET..GBA_HEADER_GAME_CODE_OFFSET + GBA_HEADER_GAME_CODE_LEN],
+    )
+    .unwrap_or_default();
+
+    println!("Welcome to Hades v{}", env!("CARGO_PKG_VERSION"));
+    println!("=========================");
+
+    // Look for the game in the database
+    if let Some(entry) = game_database_lookup(code) {
+        println!(
+            "Game code \"{}\" identified as \"{}\"",
+            entry.code(),
+            entry.title()
+        );
+
+        title = entry.title();
+
+        if let Some(backup_storage_type) = entry.backup_storage_type() {
+            config.with_backup_storage_type(backup_storage_type);
+        }
+
+        config.with_rtc(entry.has_rtc());
+    } else {
+        println!("No game with code \"{code}\" could be found in the Hades game database.");
+        println!("Configuration will be automatically detected.");
+        config.detect_backup_storage();
+    }
+
     // Read the backup storage
-    config.with_backup_storage_type(BackupStorageType::Flash128);
-    match fs::read(&args.rom.with_extension("sav")) {
-        Ok(backup) => config.with_backup_storage_data(backup),
-        Err(e) => {
-            eprintln!("Failed to read ROM's Backup storage: {}: {}", args.rom.with_extension("sav").display(), e);
+    if config.backup_storage_type().is_some() {
+        match fs::read(&args.rom.with_extension("sav")) {
+            Ok(backup) => config.with_backup_storage_data(backup),
+            Err(e) => {
+                eprintln!(
+                    "Failed to read ROM's Backup storage: {}: {}",
+                    args.rom.with_extension("sav").display(),
+                    e
+                );
+            }
         }
     }
+
+    // Print the configuration
+    println!("Configuration:");
+    println!(
+        "    Backup storage: {}",
+        config
+            .backup_storage_type()
+            .and_then(|b| Some(b.to_string()))
+            .unwrap_or_else(|| "none".to_string())
+    );
+    println!("    Rtc: {}", config.rtc());
 
     // Create the Window, EventLoop and WinitInputHelper
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let window = WindowBuilder::new()
-        .with_title("Hades")
+        .with_title(format!("Hades - {}", title))
         .with_inner_size(LogicalSize::new(
             DEFAULT_WINDOW_WIDTH as f64,
             DEFAULT_WINDOW_HEIGHT as f64,

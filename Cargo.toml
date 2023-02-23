@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "hs_app",
+    "hs_db",
     "hs_dbg",
     "hs_gba",
 ]

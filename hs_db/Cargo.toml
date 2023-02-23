@@ -1,0 +1,7 @@
+[package]
+name = "hs_db"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hs_gba = { path = "../hs_gba/" }
