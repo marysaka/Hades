@@ -39,7 +39,6 @@ struct shared_data {
 
 struct gba {
     bool exit;
-    atomic_bool request_pause;
 
     // The current state of the GBA
     enum gba_states state;
@@ -87,8 +86,8 @@ struct gba_config {
 
 /* source/gba.c */
 struct gba *gba_create(void);
-void gba_run(struct gba *gba);
-void gba_request_pause(struct gba *gba);
+void gba_reset(struct gba *gba, struct gba_config const *config);
+void gba_process_key_press(struct gba *gba, uint32_t key, bool pressed);
 void gba_delete(struct gba *gba);
 void gba_shared_framebuffer_lock(struct gba *gba);
 void gba_shared_framebuffer_release(struct gba *gba);

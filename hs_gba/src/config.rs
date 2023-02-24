@@ -36,6 +36,7 @@ impl BackupStorageType {
     }
 }
 
+#[derive(Debug)]
 pub struct GbaConfig {
     rom: Vec<u8>,
     bios: Vec<u8>,

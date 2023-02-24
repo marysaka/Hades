@@ -27,7 +27,6 @@ struct channel {
 };
 
 struct channels {
-    struct channel messages;        // Sent by the frontned to the emulator
     struct channel notifications;   // Sent by the emulator to the frontend
 };
 

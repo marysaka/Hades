@@ -3,7 +3,7 @@ use hs_gba::{Gba, Message, MessageChannel, Notification, NotificationChannel};
 use reedline::{DefaultPrompt, Reedline, Signal};
 
 pub struct Debugger<'a> {
-    message_channel: MessageChannel<'a>,
+    message_channel: MessageChannel,
     notification_channel: NotificationChannel<'a>,
 }
 
@@ -21,6 +21,7 @@ impl<'a> Debugger<'a> {
         loop {
             self.notification_channel.wait();
             for notif in self.notification_channel.pop() {
+                println!("{:?}", notif);
                 if let Notification::Pause = notif {
                     return;
                 }
@@ -37,7 +38,7 @@ impl<'a> Debugger<'a> {
 
         match args[0] {
             "run" => {
-                self.message_channel.lock_and_send(Message::Run);
+                self.message_channel.send(Message::Run);
                 self.wait_for_gba();
             }
             _ => println!("Invalid command."),

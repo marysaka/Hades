@@ -19,7 +19,7 @@ fn main() {
         .clang_arg("-I../libgba/include")
         .clang_arg("-fms-extensions")
         .opaque_type(r"(core|scheduler|memory|ppu|apu|io|gpio).*")
-        .allowlist_function(r"(gba|channel)_.*")
+        .allowlist_function(r"(gba|channel|sched)_.*")
         .allowlist_type(
             r"(gba|shared_data|channels|message|notification|event|backup_storage_types|keys).*",
         )

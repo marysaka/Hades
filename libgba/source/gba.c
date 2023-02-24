@@ -36,8 +36,6 @@ gba_create(void)
 
     // Channels
     {
-        pthread_mutex_init(&gba->channels.messages.lock, NULL);
-        pthread_cond_init(&gba->channels.messages.ready, NULL);
         pthread_mutex_init(&gba->channels.notifications.lock, NULL);
         pthread_cond_init(&gba->channels.notifications.ready, NULL);
     }
@@ -51,7 +49,7 @@ gba_create(void)
     return (gba);
 }
 
-static void
+void
 gba_reset(
     struct gba *gba,
     struct gba_config const *config
@@ -263,156 +261,26 @@ gba_reset(
     }
 }
 
-static
 void
-gba_process_message(
+gba_process_key_press(
     struct gba *gba,
-    struct message const *message
+    uint32_t key,
+    bool pressed
 ) {
-    switch (message->header.kind) {
-        case MESSAGE_EXIT: {
-            printf("EXIT\n");
-            gba->exit = true;
-            break;
-        };
-        case MESSAGE_RESET: {
-            printf("RESET\n");
-            struct message_reset const *msg_reset;
+    switch (key) {
+        case KEY_A:         gba->io.keyinput.a = !pressed; break;
+        case KEY_B:         gba->io.keyinput.b = !pressed; break;
+        case KEY_L:         gba->io.keyinput.l = !pressed; break;
+        case KEY_R:         gba->io.keyinput.r = !pressed; break;
+        case KEY_UP:        gba->io.keyinput.up = !pressed; break;
+        case KEY_DOWN:      gba->io.keyinput.down = !pressed; break;
+        case KEY_RIGHT:     gba->io.keyinput.right = !pressed; break;
+        case KEY_LEFT:      gba->io.keyinput.left = !pressed; break;
+        case KEY_START:     gba->io.keyinput.start = !pressed; break;
+        case KEY_SELECT:    gba->io.keyinput.select = !pressed; break;
+    };
 
-            msg_reset = (struct message_reset const *)message;
-            gba_reset(gba, &msg_reset->config);
-            break;
-        };
-        case MESSAGE_RUN: {
-            printf("RUN\n");
-            struct notification notif;
-
-            gba->state = GBA_STATE_RUN;
-
-            // Notify the UI that we are now running.
-            notif.header.kind = NOTIFICATION_RUN;
-            notif.header.size = sizeof(notif);
-            channel_lock(&gba->channels.notifications);
-            channel_push(&gba->channels.notifications, &notif.header);
-            channel_release(&gba->channels.notifications);
-            break;
-        };
-        case MESSAGE_PAUSE: {
-            printf("PAUSE\n");
-            struct notification notif;
-
-            gba->state = GBA_STATE_PAUSE;
-
-            // Notify the UI that we are now paused.
-            notif.header.kind = NOTIFICATION_PAUSE;
-            notif.header.size = sizeof(notif);
-            channel_lock(&gba->channels.notifications);
-            channel_push(&gba->channels.notifications, &notif.header);
-            channel_release(&gba->channels.notifications);
-            break;
-        };
-        case MESSAGE_KEY: {
-            struct message_key const *msg_key;
-
-            msg_key = (struct message_key const *)message;
-            switch (msg_key->key) {
-                case KEY_A:         gba->io.keyinput.a = !msg_key->pressed; break;
-                case KEY_B:         gba->io.keyinput.b = !msg_key->pressed; break;
-                case KEY_L:         gba->io.keyinput.l = !msg_key->pressed; break;
-                case KEY_R:         gba->io.keyinput.r = !msg_key->pressed; break;
-                case KEY_UP:        gba->io.keyinput.up = !msg_key->pressed; break;
-                case KEY_DOWN:      gba->io.keyinput.down = !msg_key->pressed; break;
-                case KEY_RIGHT:     gba->io.keyinput.right = !msg_key->pressed; break;
-                case KEY_LEFT:      gba->io.keyinput.left = !msg_key->pressed; break;
-                case KEY_START:     gba->io.keyinput.start = !msg_key->pressed; break;
-                case KEY_SELECT:    gba->io.keyinput.select = !msg_key->pressed; break;
-            };
-
-            io_scan_keypad_irq(gba);
-            break;
-        };
-    }
-}
-
-/*
-** Run the given GBA emulator.
-** This will process all the message sent to the gba until an exit message is sent.
-*/
-void
-gba_run(
-    struct gba *gba
-) {
-    struct channel *messages;
-
-    messages = &gba->channels.messages;
-
-    while (!gba->exit) {
-        // Consume all messages
-        {
-            struct message *msg;
-
-            channel_lock(messages);
-
-            msg = (struct message *)channel_next(messages, NULL);
-            while (msg) {
-                gba_process_message(gba, msg);
-                msg = (struct message *)channel_next(messages, &msg->header);
-            }
-
-            channel_clear(messages);
-
-            // If the exit flag was raised, leave now
-            if (gba->exit) {
-                return ;
-            }
-
-            // Wait until there's new messages in the message queue.
-            if (gba->state == GBA_STATE_PAUSE) {
-                printf("SLEEPING\n");
-                channel_wait(messages);
-            }
-
-            channel_release(messages);
-        }
-
-        // Check if an emergency pause was requested
-        {
-            bool pause;
-
-            pause = atomic_exchange(&gba->request_pause, false);
-            if (pause) {
-                printf("EMERGENCY PAUSE\n");
-                struct message fake_pause_msg;
-
-                fake_pause_msg.header.kind = MESSAGE_PAUSE;
-                fake_pause_msg.header.size = sizeof(fake_pause_msg);
-                gba_process_message(gba, &fake_pause_msg);
-            }
-        }
-
-        // Process the current state
-        switch (gba->state) {
-            case GBA_STATE_PAUSE: break;
-            case GBA_STATE_RUN: {
-                sched_run_for(gba, CYCLES_PER_FRAME);
-                break;
-            };
-        }
-    }
-}
-
-/*
-** Request to pause the GBA.
-**
-** The difference between calling this function instead of sending a pause message is that this
-** function can safely be called from a signal handler.
-** The counterpart is that the pause will be processed asynchronously, at an unspecified time.
-*/
-void
-gba_request_pause(
-    struct gba *gba
-) {
-    atomic_store(&gba->request_pause, true);
+    io_scan_keypad_irq(gba);
 }
 
 /*

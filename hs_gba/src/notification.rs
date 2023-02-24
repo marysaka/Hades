@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use crate::gba::Gba;
 use crate::libgba_sys;
 
+#[derive(Copy, Clone, Debug)]
 pub enum Notification {
     Run,
     Pause,
@@ -25,6 +26,14 @@ impl Notification {
             ),
         }
     }
+
+    fn to_raw(self) -> i32 {
+        match self {
+            Notification::Run => libgba_sys::notification_kind::NOTIFICATION_RUN as i32,
+            Notification::Pause => libgba_sys::notification_kind::NOTIFICATION_PAUSE as i32,
+            Notification::Reset => libgba_sys::notification_kind::NOTIFICATION_RESET as i32,
+        }
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -38,6 +47,23 @@ impl<'a> NotificationChannel<'a> {
         Self {
             inner: gba.inner,
             phantom: PhantomData,
+        }
+    }
+
+    pub fn send(&mut self, notif: Notification) {
+        unsafe {
+            let msg_channel = &mut (*self.inner).channels.notifications;
+
+            let raw_notif = libgba_sys::notification {
+                header: libgba_sys::event_header {
+                    kind: notif.to_raw(),
+                    size: core::mem::size_of::<libgba_sys::notification>(),
+                },
+            };
+
+            libgba_sys::channel_lock(msg_channel);
+            libgba_sys::channel_push(msg_channel, &raw_notif.header);
+            libgba_sys::channel_release(msg_channel);
         }
     }
 

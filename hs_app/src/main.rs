@@ -6,6 +6,7 @@ use crate::gui::Gui;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fs;
+use std::sync::Arc;
 
 use hs_db::game_database_lookup;
 use hs_dbg::Debugger;
@@ -164,13 +165,16 @@ fn main() {
         GBA.runner().run();
     });
 
+    let config = Arc::new(config);
+
     // Reset the GBA with the given configuration
-    msg_channel.lock_and_send(Message::Reset(&config));
+    msg_channel.send(Message::Reset(config.clone()));
 
     // Wait for the reset notification
     'notif_loop: loop {
         notif_channel.wait();
         for notif in notif_channel.pop() {
+            println!("{:?}", notif);
             if let Notification::Reset { .. } = notif {
                 break 'notif_loop;
             }
@@ -189,7 +193,7 @@ fn main() {
         .expect("Error setting Ctrl-C handler");
 
         // Start the GBA
-        msg_channel.lock_and_send(Message::Run);
+        msg_channel.send(Message::Run);
         debugger.wait_for_gba();
 
         debugger.repl();
@@ -236,7 +240,7 @@ fn main() {
             // Handle GBA keybinds
             for (bind, key) in keybinds.iter() {
                 if input.key_pressed(*key) || input.key_released(*key) {
-                    msg_channel.lock_and_send(Message::Key {
+                    msg_channel.send(Message::Key {
                         key: *bind,
                         pressed: input.key_pressed(*key),
                     });
